@@ -1,0 +1,44 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Page</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <!-- Custom CSS -->
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="header">
+        <h1> Automation Testing for Dynamic/Adaptive GUI Interfaces using playwright
+        </h1>
+      </div>
+      <div class="container">
+      
+        <div class="login-box">
+          <h1>Login</h1>
+          <center><p style="color:red">{{ error }}</p></center>
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="input-group">
+              <label for="username">Username</label>
+              <input type="text" id="username" name="username" required />
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+            <button type="submit">Login</button>
+          </form>
+          <p class="signup-link">
+            <a href="#">Don't have an account? Sign up</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    <!-- Your custom JS -->
+  </body>
+</html>

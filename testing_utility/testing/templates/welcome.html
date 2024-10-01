@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login Page</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <!-- Custom CSS -->
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="header">
+        <h1> Automation Testing for Dynamic/Adaptive GUI Interfaces using playwright
+        </h1>
+      </div>
+      <div>
+        <nav>
+          <input type="checkbox" id="menu-toggle">
+          <label for="menu-toggle" class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+          </label>
+            <ul class="menu">
+            <li><a href="#">Home</a></li>
+            <li><a href="{% url 'test_website' %}">Test Website</a></li>
+            <li><a href="#">Report</a></li>
+            <li><a href="{% url 'logout' %}">Log Out</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="container">
+        {% comment %} <h1 style="font-size:70px;">Welcome Page</h1> {% endcomment %}
+      </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    <!-- Your custom JS -->
+  </body>
+</html>
