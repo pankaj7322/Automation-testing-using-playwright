@@ -10,4 +10,7 @@ urlpatterns = [
     path('submit-links/', views.run_tests_view, name='run_tests'),
     path('result', views.result, name='result'),
     path("form-test", views.form_test, name='form_test'),
+    path('form_view/', views.run_form_view, name='form_view'),
+    path('navigation/', views.navigation,name = 'navigation'),
+    path('navigation-test/', views.navigation_view, name='navigation_test'),
 ]

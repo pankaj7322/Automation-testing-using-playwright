@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Test Report</title>
+    <title>Validation Test Report</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -67,32 +67,34 @@
 </head>
 <body>
 
-    <h1>Automation Test Report</h1>
+    <h1>Validation Test Report</h1>
     
     <table>
         <thead>
             <tr>
                 <th>URL</th>
-                <th>Username</th>
                 <th>Browser</th>
+                <th>Field</th>
                 <th>Status</th>
-                <th>Test Result</th>
-                <th>Time Taken (ms)</th>
                 <th>Error Details</th>
             </tr>
         </thead>
         <tbody>
-            {% for result in test_results %}
+            {% for result in form_results %}
             <tr>
                 <td>{{ result.url }}</td>
-                <td>{{ result.username }}</td>
                 <td>{{ result.browser }}</td>
-                <td class="{% if 'successful' in result.result %}success{% else %}fail{% endif %}">
-                    {% if 'successful' in result.result %}Pass{% else %}Fail{% endif %}
+                <td>{{ result.field }}</td>
+                <td class="{% if result.validation %}success{% else %}fail{% endif %}">
+                    {% if result.validation %}Pass{% else %}Fail{% endif %}
                 </td>
-                <td>{{ result.result }}</td>
-                <td>{{ result.time_taken|default:"N/A" }}</td> <!-- If time is available -->
-                <td>{{ result.error_details|default:"N/A" }}</td> <!-- If error details exist -->
+                <td>
+                    {% if not result.validation %}
+                        {{ result.errors | join:", " }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

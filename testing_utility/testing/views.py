@@ -3,15 +3,12 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.decorators.cache import cache_control
 from django.contrib.auth.models import User
-from .forms import RegisterForm
 from django.contrib import messages
-from playwright.sync_api import sync_playwright
+from asgiref.sync import async_to_sync
 from playwright.async_api import async_playwright
-import subprocess
 import asyncio
-import os
-from django.conf import settings
-import datetime
+import time
+
 
 def register(request):
     if request.method == 'POST':
@@ -61,6 +58,9 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+def navigation(request):
+    return render(request, 'navigation_form.html')
+
 
 def test(request):
     return render(request, 'test_website.html')
@@ -101,82 +101,75 @@ async def detect_field(page, field_type):
             return field
     return None
 
-async def run_playwright_test(url, username, password):
+async def run_playwright_test(url, username, password, browser_name):
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
+        # Launch the browser based on the browser_name
+        browser = await getattr(p, browser_name).launch(headless=False)
         page = await browser.new_page()
 
+        start_time = time.time()  # Start timing
         try:
-            print(f"Navigating to {url}...")
+            print(f"Navigating to {url} on {browser_name}...")
             await page.goto(url)
 
-            # Wait for the page to fully load
             await page.wait_for_load_state('networkidle')
-
-            # Wait a bit more for the fields to be available
             await page.wait_for_timeout(1000)
 
             # Detect username and password fields
             username_field = await detect_field(page, 'username')
             if username_field:
                 await username_field.fill(username)
-                print(f"Filled username: {username}")
             else:
-                return f"Username field not found for {url}"
+                return {
+                    'result': f"Username field not found for {url}",
+                    'time_taken': time.time() - start_time,
+                    'error_details': None
+                }
 
             password_field = await detect_field(page, 'password')
             if password_field:
                 await password_field.fill(password)
-                print("Filled password.")
             else:
-                return f"Password field not found for {url}"
+                return {
+                    'result': f"Password field not found for {url}",
+                    'time_taken': time.time() - start_time,
+                    'error_details': None
+                }
 
-            # Detect and click submit button
+            # Detect and click the submit button
             submit_button = await page.query_selector('button[type="submit"], input[type="submit"], button:has-text("Login"), button:has-text("Log in"), button[id="submit"], button[id="login"]')
             if submit_button:
                 await submit_button.click()
-                print("Clicked submit button.")
             else:
-                return f"Submit button not found for {url}"
+                return {
+                    'result': f"Submit button not found for {url}",
+                    'time_taken': time.time() - start_time,
+                    'error_details': None
+                }
 
-            # Wait for navigation
             await page.wait_for_load_state('networkidle')
 
-            # Check for URL change
+            # Check for successful login (similar logic as before)
             current_url = page.url
-            print(f"Current URL after login: {current_url}")
+            success_indicators = ['div.dashboard', 'div.user-welcome', 'nav', 'h1', 'footer']
+            success_found = any([await page.query_selector(indicator) for indicator in success_indicators])
 
-            # Check for common elements that signify a successful login
-            # You can define a list of common elements that may appear on successful login
-            success_indicators = [
-                'div.dashboard',  # Adjust according to the expected element
-                'div.user-welcome',  # Example for a user welcome message
-                'nav',  # Common navigation element for logged-in users
-                'h1',  # Check for headers that typically appear
-                'footer'  # Check for footer elements as an additional indicator
-            ]
-
-            success_found = False
-            for indicator in success_indicators:
-                element = await page.query_selector(indicator)
-                if element:
-                    success_found = True
-                    break
-            
-            if success_found:
-                return f"Login successful for {url}"
-            else:
-                return f"Login failed for {url}: No success indicators found."
+            result_text = f"Login {'successful' if success_found else 'failed'} for {url}"
+            return {
+                'result': result_text,
+                'time_taken': time.time() - start_time,
+                'error_details': None
+            }
 
         except Exception as e:
-            return f"Test failed for {url}: {str(e)}"
+            return {
+                'result': f"Test failed for {url}: {str(e)}",
+                'time_taken': time.time() - start_time,
+                'error_details': str(e)
+            }
 
         finally:
             await browser.close()
-
-
-
-
 
 def run_tests_view(request):
     if request.method == 'POST':
@@ -184,29 +177,197 @@ def run_tests_view(request):
         usernames = request.POST.getlist('username[]')
         passwords = request.POST.getlist('password[]')
 
-        # Create an event loop
+        browsers = ['chromium', 'firefox', 'webkit']  # Automatically run on all browsers
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        # Prepare tasks for parallel execution
         tasks = [
-            run_playwright_test(url, username, password)
+            run_playwright_test(url, username, password, browser)
             for url, username, password in zip(urls, usernames, passwords)
+            for browser in browsers
         ]
 
         try:
-            # Run all tests asynchronously
             results = loop.run_until_complete(asyncio.gather(*tasks))
         except Exception as e:
             return render(request, 'test_report.html', {'error': str(e)})
 
-        # Create a structured data format for table display
         test_results = [
-            {'url': url, 'username': username, 'result': result}
-            for url, username, result in zip(urls, usernames, results)
+            {
+                'url': url,
+                'username': username,
+                'browser': browser,
+                'result': result['result'],
+                'time_taken': result['time_taken'],
+                'error_details': result['error_details']
+            }
+            for i, (url, username, password) in enumerate(zip(urls, usernames, passwords))
+            for browser, result in zip(browsers, results[i*len(browsers):(i+1)*len(browsers)])
         ]
 
-        # Pass the structured results to the template
         return render(request, 'test_report.html', {'test_results': test_results})
 
     return render(request, 'welcome.html')
+
+# *****************************************************************************************
+
+async def validate_form(page):
+    try:
+        # Check for any visible validation errors on the page
+        validation_error_selector = 'span.error-message'
+        if await page.is_visible(validation_error_selector):
+            errors = await page.locator(validation_error_selector).all_inner_texts()
+            return {"validation": False, "errors": errors}
+        return {"validation": True, "errors": []}
+    except Exception as e:
+        return {"validation": False, "errors": [str(e)]}
+
+async def open_website(url, class_names, values, browser_name):
+    async with async_playwright() as p:
+        # Launch the specified browser
+        browser = await getattr(p, browser_name).launch(headless=False)  # 'headless' can be set to True
+        page = await browser.new_page()
+        await page.goto(url)
+
+        await page.wait_for_load_state('networkidle')
+
+        # Validate each form field
+        validation_results = []
+        for class_name in class_names:
+            result = await validate_form(page)
+            validation_results.append({
+                "url": page.url,
+                "browser": browser_name,
+                "field": class_name,
+                "validation": result['validation'],
+                "errors": result['errors']
+            })
+
+        await browser.close()
+        return validation_results
+
+async def run_tests_across_browsers(url, class_names):
+    results = []
+    browsers = ['chromium', 'firefox', 'webkit']  # List of browsers to test
+
+    for browser_name in browsers:
+        print(f"Running validation tests on {browser_name.capitalize()}...")
+        form_results = await open_website(url, class_names, browser_name)
+        results.extend(form_results)
+
+    return results
+
+def run_form_view(request):
+    if request.method == 'POST':
+        url = request.POST.get('url')
+        class_names = request.POST.getlist('xpath[]')  # Change to match the input name in HTML
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        try:
+            # Run validation tests across all browsers
+            validation_results = loop.run_until_complete(run_tests_across_browsers(url, class_names))
+            return render(request, 'form_result.html', {'form_results': validation_results, 'url': url})
+        except Exception as e:
+            return render(request, 'form_result.html', {'error': str(e)})
+
+    return render(request, 'welcome.html')
+
+
+#***********************************************************************************************
+# View to handle the navigation test using Playwright
+async def test_navigation_for_browser(url, menu_paths, browser_name):
+    results = []
+    async with async_playwright() as p:
+        browser = await getattr(p, browser_name).launch(headless=False)  # Launch the specified browser
+        page = await browser.new_page()
+
+        try:
+            await page.goto(url)
+            await page.wait_for_load_state('networkidle')  # Wait until the page is fully loaded
+
+            for menu_path in menu_paths:
+                try:
+                    start_time = time.time()
+                    await page.click(menu_path)  # Try to click on the menu path
+                    await page.wait_for_load_state('networkidle')  # Wait for the page navigation
+                    time_taken = (time.time() - start_time) * 1000  # Time taken in ms
+
+                    # Check if the page URL changed after the click (indicating a successful navigation)
+                    if page.url != url:
+                        results.append({
+                            'browser': browser_name,
+                            'menu_path': menu_path,
+                            'status': 'Success',
+                            'new_url': page.url,
+                            'time_taken': time_taken,
+                            'error_details': None
+                        })
+                    else:
+                        # Optional: Check for a specific element on the new page
+                        # e.g., Check if a known header or footer element exists
+                        new_page_title = await page.title()
+                        if new_page_title:  # This check can be modified based on your needs
+                            results.append({
+                                'browser': browser_name,
+                                'menu_path': menu_path,
+                                'status': 'Success',
+                                'new_url': page.url,
+                                'time_taken': time_taken,
+                                'error_details': 'Page title changed, navigation is successful.'
+                            })
+                        else:
+                            results.append({
+                                'browser': browser_name,
+                                'menu_path': menu_path,
+                                'status': 'Error',
+                                'new_url': url,
+                                'time_taken': time_taken,
+                                'error_details': 'No navigation occurred.'
+                            })
+
+                    # Navigate back to the original page to test the next menu
+                    await page.go_back()
+                except Exception as e:
+                    results.append({
+                        'browser': browser_name,
+                        'menu_path': menu_path,
+                        'status': 'Error',
+                        'new_url': url,
+                        'error_details': str(e)
+                    })
+
+        except Exception as e:
+            results.append({
+                'browser': browser_name,
+                'status': 'Error',
+                'new_url': url,
+                'error_details': str(e)
+            })
+
+        await browser.close()
+    
+    return results
+
+async def test_navigation(url, menu_paths):
+    browsers = ['chromium', 'firefox', 'webkit']  # List of browsers to test
+    tasks = [test_navigation_for_browser(url, menu_paths, browser) for browser in browsers]
+    results = await asyncio.gather(*tasks)  # Run all tests in parallel
+    return [result for browser_results in results for result in browser_results]  # Flatten the list
+
+# Django view to handle form submission
+def navigation_view(request):
+    if request.method == 'POST':
+        url = request.POST.get('url')  # Get the website URL
+        menu_paths = request.POST.getlist('menu_paths[]')  # Get the list of menu path selectors
+
+        # Convert the async function to sync using async_to_sync
+        try:
+            test_results = async_to_sync(test_navigation)(url, menu_paths)
+            return render(request, 'navigation_result.html', {'test_results': test_results, 'url': url})
+        except Exception as e:
+            return render(request, 'navigation_result.html', {'error': str(e)})
+
+    return render(request, 'navigation_form.html')

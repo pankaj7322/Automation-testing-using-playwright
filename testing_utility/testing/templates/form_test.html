@@ -24,32 +24,74 @@
                     <span></span>
                 </label>
                 <ul class="menu">
-                    <li><a href="#">Home</a></li>
+                    <li><a href="{% url 'home' %}">Home</a></li>
                     <li><a href="{% url 'test_website' %}">Login Test</a></li>
-                    <li><a href="#">Page Navigation Test</a></li>
+                    <li style="background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%); color:white; border-radius:5px;padding:0.5rem 1rem;"><a href="#">Form Test</a></li>
+                    <li><a href="{% url 'navigation' %}">Page Navigation Test</a></li>
                     <li><a href="{% url 'logout' %}">Log Out</a></li>
                 </ul>
             </nav>
         </div>
 
         <div class="container">
-            <form id="linkForm" method="post" action="{% url 'run_tests' %}">
-                <h2 style="color:red;">Submit Links for Form Test</h2>
+            <form id="linkForm1" method="post" action="{% url 'form_view' %}">
+                <h2 style="color:red;">Form Test</h2><br>
                 {% csrf_token %}
-                <div id="link-inputs" class="scrollable-container">
-                    <div class="input-group1">
-                        <span class="input-number">1.</span>
-                        <input type="url" name="url[]" placeholder="Enter link" required />
-                        <input type="text" name="username[]" placeholder="Enter username" required />
-                        <input type="password" name="password[]" placeholder="Enter password" required />
-                        <button type="button" id="add-more" class="add-btn">+</button>
+                
+                <!-- Input for the URL -->
+                <div class="input-group">
+                    <input type="url" name="url" id="form-url" placeholder="Enter form URL" required />
+                </div>
+
+                <!-- Dynamic input fields for XPath and Value pairs -->
+                <div id="xpath-value-inputs" class="scrollable-container1">
+                    <div class="input-group2">
+                        <label>Class Name:</label>
+                        <input type="text" name="xpath[]" placeholder="Enter XPath" required />
+                        <label>Value:</label>
+                        <input type="text" name="value[]" placeholder="Enter Value" required />
+                        <!-- Button to add more input fields -->
+                        <button type="button" class="add-btn" onclick="addMoreFields()">+</button>
                     </div>
                 </div>
-                <button type="submit" class="submit-btn">Submit Links</button>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn">Submit</button>
             </form>
         </div>
     </div>
 
     <script src="{% static 'js/script.js' %}"></script>
+    <script>
+        // Function to dynamically add more XPath and Value input fields
+        function addMoreFields() {
+            const container = document.getElementById('xpath-value-inputs');
+
+            // Create a new div to hold the XPath and Value inputs
+            const newInputGroup = document.createElement('div');
+            newInputGroup.classList.add('input-group2');
+            
+            // Create new input fields for XPath and Value
+            newInputGroup.innerHTML = `
+                <label>Class Name:</label>
+                <input type="text" name="xpath[]" placeholder="Enter XPath" required />
+                
+                <label>Value:</label>
+                <input type="text" name="value[]" placeholder="Enter Value" required />
+                
+                <!-- Add and Remove buttons -->
+                <button type="button" class="remove-btn" onclick="removeFields(this)">-</button>
+            `;
+
+            // Append the new input group to the container
+            container.appendChild(newInputGroup);
+        }
+
+        // Function to remove a specific XPath/Value input group
+        function removeFields(button) {
+            const inputGroup = button.parentNode;
+            inputGroup.remove();
+        }
+    </script>
 </body>
 </html>

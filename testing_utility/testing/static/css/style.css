@@ -3,12 +3,14 @@
   padding: 0;
   box-sizing: border-box;
 }
+
 body {
   font-family: Arial, sans-serif;
   background-color: #1db6be;
   margin: 0;
   padding: 0;
 }
+
 .header {
   width: 100%;
   height: 70px;
@@ -18,9 +20,11 @@ body {
   padding-top: 15px;
   color: white;
 }
+
 .header h1 {
   font-size: 2.5vw;
 }
+
 #linkForm {
   background: white;
   width: 800px;
@@ -31,6 +35,18 @@ body {
   text-align: center;
   box-sizing: border-box;
 }
+
+#linkForm1 {
+  background: white;
+  width: 800px;
+  max-height: 330px;
+  position: absolute;
+  padding: 10px;
+  top: 30%;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 @media (max-width: 480px) {
   .header {
     padding: 20px;
@@ -40,14 +56,13 @@ body {
     font-size: 2.5vw;
   }
 }
+
 nav {
   background-color: #4158d0;
-  background-image: linear-gradient(
-    43deg,
-    #4158d0 0%,
-    #c850c0 46%,
-    #ffcc70 100%
-  );
+  background-image: linear-gradient(43deg,
+      #4158d0 0%,
+      #c850c0 46%,
+      #ffcc70 100%);
 
   color: #fff;
   width: 100%;
@@ -57,11 +72,13 @@ nav {
   align-items: center;
   position: relative;
 }
+
 .menu {
   list-style: none;
   display: flex;
   gap: 1rem;
 }
+
 .menu li a {
   color: white;
   text-decoration: none;
@@ -69,12 +86,14 @@ nav {
   font-size: 1.2rem;
   font-weight: bold;
 }
+
 .menu li a:hover {
   background-color: #ffe53b;
   background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%);
 
   border-radius: 5px;
 }
+
 /* Responsive Design */
 #menu-toggle {
   display: none;
@@ -86,7 +105,8 @@ nav {
   cursor: pointer;
   gap: 4px;
   z-index: 1000;
-  position: absolute; /* Positioned to the left */
+  position: absolute;
+  /* Positioned to the left */
   left: 1rem;
 }
 
@@ -96,17 +116,21 @@ nav {
   background-color: white;
   transition: all 0.3s ease;
 }
+
 @media (max-width: 768px) {
   .header {
     padding: 30px;
   }
 
   .header h1 {
-    font-size: 2.5vw; /* Increase font size a bit on smaller screens for better readability */
+    font-size: 2.5vw;
+    /* Increase font size a bit on smaller screens for better readability */
   }
+
   nav {
     justify-content: center;
   }
+
   .menu {
     flex-direction: column;
     position: absolute;
@@ -116,26 +140,38 @@ nav {
     z-index: 1000;
 
     background-color: #fa8bff;
-    background-image: linear-gradient(
-      45deg,
-      #fa8bff 0%,
-      #2bd2ff 52%,
-      #2bff88 90%
-    );
+    background-image: linear-gradient(45deg,
+        #fa8bff 0%,
+        #2bd2ff 52%,
+        #2bff88 90%);
     display: none;
   }
+
   .menu li {
     text-align: center;
     margin: 1rem 0;
   }
-  #menu-toggle:checked + .hamburger + .menu {
+
+  #menu-toggle:checked+.hamburger+.menu {
     display: flex;
   }
 
   .hamburger {
     display: flex;
   }
+
   #linkForm {
+    background: white;
+    width: 350px;
+    max-height: 330px;
+    position: absolute;
+    padding: 10px;
+    top: 30%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  #linkForm1 {
     background: white;
     width: 350px;
     max-height: 330px;
@@ -148,15 +184,15 @@ nav {
 }
 
 /* Change hamburger icon to a cross when menu is open */
-#menu-toggle:checked + .hamburger span:nth-child(1) {
+#menu-toggle:checked+.hamburger span:nth-child(1) {
   transform: rotate(45deg) translate(5px, 5px);
 }
 
-#menu-toggle:checked + .hamburger span:nth-child(2) {
+#menu-toggle:checked+.hamburger span:nth-child(2) {
   opacity: 0;
 }
 
-#menu-toggle:checked + .hamburger span:nth-child(3) {
+#menu-toggle:checked+.hamburger span:nth-child(3) {
   transform: rotate(-45deg) translate(5px, -5px);
 }
 
@@ -239,6 +275,7 @@ button:hover {
     font-size: 24px;
   }
 }
+
 input[type="url"],
 input[type="password"],
 input[type="text"] {
@@ -252,17 +289,25 @@ input[type="text"] {
 input {
   margin-left: 10px;
 }
+
 .input-number {
   margin-top: 10px;
   margin-right: 5px;
   font-weight: bold;
 }
+
 .input-group1 {
   display: flex;
   padding: 10px;
 }
+
+.input-group2 {
+  padding: 5px;
+}
+
 button.add-btn,
-button.delete-btn {
+button.delete-btn,
+button.remove-btn {
   margin-left: 10px;
   padding: 10px;
   width: 50px;
@@ -272,22 +317,37 @@ button.delete-btn {
   border-radius: 4px;
   cursor: pointer;
 }
+
 button.add-btn:hover,
-button.delete-btn:hover {
+button.delete-btn:hover,
+button.remove-btn:hover {
   background-color: #0056b3;
 }
-button.delete-btn {
+
+button.delete-btn,
+button.remove-btn {
   background-color: #ff0000;
 }
+
 .scrollable-container {
-  max-height: 220px; /* Set a max height */
+  max-height: 220px;
+  /* Set a max height */
   overflow-y: auto;
   padding: 10px;
   margin-bottom: 20px;
 }
+
+.scrollable-container1 {
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
 .scrollable-container::-webkit-scrollbar {
   width: 8px;
 }
+
 /* Style the scrollbar for better UX */
 .scrollable-container::-webkit-scrollbar {
   width: 8px;
@@ -304,7 +364,7 @@ button.delete-btn {
 
 /* Submit button styling */
 button.submit-btn {
-  width: 100%;
+  width: 50%;
   padding: 10px;
   background-color: #28a745;
   color: white;
@@ -312,22 +372,11 @@ button.submit-btn {
   border-radius: 4px;
   cursor: pointer;
 }
+
 button.submit-btn:hover {
   background-color: #218838;
 }
+
 table {
   background: white;
-}
-
-.box {
-  width: 100%;
-  display: flex;
-  height: 70vh;
-  flex-direction: row;
-}
-.box1,
-.box2,
-.box3 {
-  width: 33.33%;
-  border: 1px solid rgb(248, 249, 248);
 }

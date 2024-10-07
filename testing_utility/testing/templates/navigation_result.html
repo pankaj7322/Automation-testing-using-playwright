@@ -73,7 +73,6 @@
         <thead>
             <tr>
                 <th>URL</th>
-                <th>Username</th>
                 <th>Browser</th>
                 <th>Status</th>
                 <th>Test Result</th>
@@ -84,22 +83,21 @@
         <tbody>
             {% for result in test_results %}
             <tr>
-                <td>{{ result.url }}</td>
-                <td>{{ result.username }}</td>
+                <td>{{ result.new_url }}</td>
                 <td>{{ result.browser }}</td>
-                <td class="{% if 'successful' in result.result %}success{% else %}fail{% endif %}">
-                    {% if 'successful' in result.result %}Pass{% else %}Fail{% endif %}
+                <td class="{% if result.status == 'Success' %}success{% else %}fail{% endif %}">
+                    {% if result.status == 'Success' %}Pass{% else %}Fail{% endif %}
                 </td>
-                <td>{{ result.result }}</td>
-                <td>{{ result.time_taken|default:"N/A" }}</td> <!-- If time is available -->
-                <td>{{ result.error_details|default:"N/A" }}</td> <!-- If error details exist -->
+                <td>{{ result.status }}</td>
+                <td>{{ result.time_taken|default:"N/A" }}</td>
+                <td>{{ result.error_details|default:"N/A" }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <div class="button-container">
-        <a href="{% url 'test_website' %}" class="back-button">Back</a> 
+        <a href="{% url 'navigation_test' %}" class="back-button">Back</a> 
         <input type="button" class="print-button" value="Print this page" onClick="window.print()">
     </div>
 

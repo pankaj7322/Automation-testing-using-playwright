@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Navigation Test Page</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <!-- Custom CSS -->
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <h1>
+                Automation Testing for Dynamic/Adaptive GUI Interfaces using Playwright
+            </h1>
+        </div>
+        <div>
+            <nav>
+                <input type="checkbox" id="menu-toggle" />
+                <label for="menu-toggle" class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </label>
+                <ul class="menu">
+                    <li><a href="{% url 'home' %}">Home</a></li>
+                    <li><a href="{% url 'test_website' %}">Login Test</a></li>
+                    <li><a href="{% url 'form_test' %}">Form Test</a></li>
+                    <li style="background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%); color:white; border-radius:5px;padding:0.5rem 1rem;"><a href="#">Page Navigation Test</a></li>
+                    <li><a href="{% url 'logout' %}">Log Out</a></li>
+                </ul>
+            </nav>
+        </div>
+
+        <div class="container">
+            <form id="linkForm1" method="post" action="{% url 'navigation_test' %}">
+                <h2 style="color:red;">Page Navigation Test</h2><br>
+                {% csrf_token %}
+            
+                <!-- URL input field -->
+                <div class="input-group">
+                    <input type="url" id="form-url" name="url" placeholder="Enter URL to test navigation" required />
+                </div>
+            
+                <!-- Dynamic input fields for multiple Menu Paths -->
+                <h3>Menu Path Links</h3>
+                <div id="url-inputs" class="scrollable-container1">
+                    <div class="input-group2">
+                        <label for="menu-path">Menu Path Link:</label>
+                        <input type="text" name="menu_paths[]" placeholder="Enter menu path link" required />
+                        <button type="button" class="add-btn" onclick="addMoreMenuFields()">+</button>
+                    </div>
+                </div>
+            
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/script.js' %}"></script>
+    <script>
+        function addMoreMenuFields() {
+        const urlInputsDiv = document.getElementById('url-inputs');
+
+        const newInputGroup = document.createElement('div');
+        newInputGroup.className = 'input-group2';
+        newInputGroup.innerHTML = `
+            <label for="menu-path">Menu Path Link:</label>
+            <input type="text" name="menu_paths[]" placeholder="Enter menu path link" required />
+            <button type="button" class="remove-btn" onclick="removeMenuField(this)">-</button>
+        `;
+
+        urlInputsDiv.appendChild(newInputGroup);
+    }
+
+    // Function to remove a menu path input field
+    function removeMenuField(button) {
+        const inputGroup = button.parentNode;
+        inputGroup.remove();
+    }
+    </script>
+</body>
+</html>
