@@ -181,6 +181,10 @@ nav {
     text-align: center;
     box-sizing: border-box;
   }
+  .bg-text{
+    width:90%;
+  }
+
 }
 
 /* Change hamburger icon to a cross when menu is open */
@@ -284,6 +288,7 @@ input[type="text"] {
   border: 1px solid black;
   border-radius: 4px;
   font-size: 14px;
+ 
 }
 
 input {
@@ -379,4 +384,27 @@ button.submit-btn:hover {
 
 table {
   background: white;
+}
+.box{
+  width: 60%;
+  filter: blur(8px);
+  position:relative;
+  z-index:1;
+
+}
+
+.bg-text{
+  position: absolute;top: 50%;  /* Center it vertically */
+  left: 50%;  /* Center it horizontally */
+  transform: translate(-50%, -50%);  /* Adjust the position to be truly centered */
+  background-color: rgba(0, 0, 0, 0.6);  /* Semi-transparent background */
+  color: white;
+  border:10px solid rgba(255, 255, 255, 0.532) ;
+  border-radius:15px;
+  padding: 10px;
+  z-index: 2;  
+  letter-spacing: 0.1cap;
+  font-weight: 300;
+  line-height: 1.5;
+  text-align: center;
 }

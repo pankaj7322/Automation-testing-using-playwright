@@ -1,55 +1,50 @@
-from playwright.sync_api import sync_playwright
+import asyncio
+from playwright.async_api import async_playwright
 
-def test_pagination(url):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)  # You can set headless=True for server environments
-        page = browser.new_page()
-        
-        # Navigate to the initial URL
-        page.goto(url)
-        
-        # Check for the "Next" button or pagination links
-        next_button_selector = 'a[rel="next"]'  # Commonly used HTML attribute for "Next" buttons
-        pagination_selector = 'ul.pagination li a'  # Example for numbered pagination links
-        
-        pagination_working = False
-        
-        try:
-            # Option 1: Check if a "Next" button exists
-            if page.is_visible(next_button_selector):
-                print("Next button found.")
-                page.click(next_button_selector)
-                page.wait_for_load_state('networkidle')
-                print(f"Navigated to next page: {page.url}")
-                pagination_working = True
-            # Option 2: Check for numbered pagination links
-            elif page.is_visible(pagination_selector):
-                print("Pagination links found.")
-                # Find all pagination links
-                pagination_links = page.query_selector_all(pagination_selector)
-                for link in pagination_links:
-                    print(f"Link: {link.inner_text()}")
-                
-                # Example: Click the next page link (2nd page)
-                page.click(pagination_selector)
-                page.wait_for_load_state('networkidle')
-                print(f"Navigated to next page: {page.url}")
-                pagination_working = True
-            else:
-                print("No pagination controls found.")
-        
-        except Exception as e:
-            print(f"Error during pagination test: {e}")
-        
-        finally:
-            browser.close()
-        
-        return pagination_working
+async def validate_form(page):
+    """
+    Check for visible validation errors on the form after submitting.
+    """
+    # Look for any validation errors (customize the selector based on the form)
+    error_selector = 'span.error-message, .error, .invalid-feedback'  # Example selectors for error messages
+    if await page.is_visible(error_selector):
+        errors = await page.locator(error_selector).all_inner_texts()
+        return {"validation_passed": False, "errors": errors}
+    return {"validation_passed": True, "errors": []}
 
-# Example usage:
-url_to_test = "https://example.com/articles"
-pagination_result = test_pagination(url_to_test)
-if pagination_result:
-    print("Pagination is working.")
-else:
-    print("Pagination is not working or not found.")
+async def test_form_validation(url):
+    async with async_playwright() as p:
+        # Launch browser
+        browser = await p.chromium.launch(headless=False)
+        page = await browser.new_page()
+
+        # Navigate to the URL
+        await page.goto(url)
+
+        # Wait for the form and fill with invalid data
+        await page.wait_for_selector('input[name="user-name"]')
+        await page.fill('input[name="user-name"]', 'invalid_email')  # Input invalid email
+        await page.fill('input[name="password"]', '123')  # Input too short password
+
+        # Wait for the submit button to be available and click it
+        await page.wait_for_selector('input[type="submit"]')
+        await page.click('input[type="submit"]')
+
+        # Optionally, you can force the form submission with Enter key
+        # await page.press('input[name="password"]', 'Enter')
+
+        # Check for validation errors
+        validation_result = await validate_form(page)
+
+        # Print results
+        if validation_result['validation_passed']:
+            print("Form validation passed.")
+        else:
+            print("Form validation failed.")
+            print(f"Errors: {validation_result['errors']}")
+
+        # Close browser
+        await browser.close()
+
+# Run the test
+asyncio.run(test_form_validation("https://www.saucedemo.com/"))

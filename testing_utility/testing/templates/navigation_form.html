@@ -44,11 +44,10 @@
                 </div>
             
                 <!-- Dynamic input fields for multiple Menu Paths -->
-                <h3>Menu Path Links</h3>
                 <div id="url-inputs" class="scrollable-container1">
                     <div class="input-group2">
-                        <label for="menu-path">Menu Path Link:</label>
-                        <input type="text" name="menu_paths[]" placeholder="Enter menu path link" required />
+                        <label for="menu-path">X-Path Link:</label>
+                        <input type="text" name="menu_paths[]" placeholder="Enter X-path link" required />
                         <button type="button" class="add-btn" onclick="addMoreMenuFields()">+</button>
                     </div>
                 </div>
@@ -67,8 +66,8 @@
         const newInputGroup = document.createElement('div');
         newInputGroup.className = 'input-group2';
         newInputGroup.innerHTML = `
-            <label for="menu-path">Menu Path Link:</label>
-            <input type="text" name="menu_paths[]" placeholder="Enter menu path link" required />
+            <label for="menu-path">X-Path Link:</label>
+            <input type="text" name="menu_paths[]" placeholder="Enter x-path link" required />
             <button type="button" class="remove-btn" onclick="removeMenuField(this)">-</button>
         `;
 

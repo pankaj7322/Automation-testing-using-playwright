@@ -9,7 +9,6 @@ from playwright.async_api import async_playwright
 import asyncio
 import time
 
-
 def register(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -171,6 +170,8 @@ async def run_playwright_test(url, username, password, browser_name):
         finally:
             await browser.close()
 
+
+
 def run_tests_view(request):
     if request.method == 'POST':
         urls = request.POST.getlist('url[]')
@@ -214,67 +215,88 @@ def run_tests_view(request):
 
 async def validate_form(page):
     try:
-        # Check for any visible validation errors on the page
-        validation_error_selector = 'span.error-message'
+        # Modify the error selector to capture specific error messages from the form
+        validation_error_selector = 'span.error-message, .error, .invalid-feedback, div.error-message'
+        
+        # Wait for form submission
+        await page.locator("form").evaluate("(form) => form.submit()")
+        
+        # Check if there are any validation error messages visible
         if await page.is_visible(validation_error_selector):
             errors = await page.locator(validation_error_selector).all_inner_texts()
+            errors = [error for error in errors if error.strip()]  # Filter out empty errors
             return {"validation": False, "errors": errors}
-        return {"validation": True, "errors": []}
+        else:
+            return {"validation": True, "errors": []}
     except Exception as e:
+        # Handle any exceptions and return as error message
         return {"validation": False, "errors": [str(e)]}
 
-async def open_website(url, class_names, values, browser_name):
+
+async def open_website(url, xpaths, browser_name):
     async with async_playwright() as p:
-        # Launch the specified browser
-        browser = await getattr(p, browser_name).launch(headless=False)  # 'headless' can be set to True
+        browser = await getattr(p, browser_name).launch(headless=False)
         page = await browser.new_page()
         await page.goto(url)
-
         await page.wait_for_load_state('networkidle')
 
-        # Validate each form field
-        validation_results = []
-        for class_name in class_names:
-            result = await validate_form(page)
-            validation_results.append({
-                "url": page.url,
-                "browser": browser_name,
-                "field": class_name,
-                "validation": result['validation'],
-                "errors": result['errors']
-            })
+        results = []
+        for field_xpath in xpaths:
+            try:
+                # Fill each field with test data
+                await page.fill(field_xpath, "TestValue")
+                # Store individual field status
+                result = await validate_form(page)
+                results.append({"field": field_xpath, "validation": result['validation'], "errors": result['errors']})
+            except Exception as e:
+                results.append({"field": field_xpath, "validation": False, "errors": [str(e)]})
 
+        await page.click('button[type="submit"], input[type="submit"]')
         await browser.close()
-        return validation_results
+        return results
 
-async def run_tests_across_browsers(url, class_names):
-    results = []
-    browsers = ['chromium', 'firefox', 'webkit']  # List of browsers to test
+async def run_cross_browser_tests(url, xpaths):
+    browser_names = ['chromium', 'firefox', 'webkit']
+    all_results = []
 
-    for browser_name in browsers:
-        print(f"Running validation tests on {browser_name.capitalize()}...")
-        form_results = await open_website(url, class_names, browser_name)
-        results.extend(form_results)
-
-    return results
+    for browser_name in browser_names:
+        try:
+            browser_results = await open_website(url, xpaths, browser_name)
+            for result in browser_results:
+                all_results.append({
+                    "url": url,
+                    "browser": browser_name.capitalize(),
+                    "field": result["field"],
+                    "validation": result["validation"],
+                    "errors": result["errors"]
+                })
+        except Exception as e:
+            all_results.append({
+                "url": url,
+                "browser": browser_name.capitalize(),
+                "field": "N/A",
+                "validation": False,
+                "errors": [str(e)]
+            })
+    
+    return all_results
 
 def run_form_view(request):
     if request.method == 'POST':
         url = request.POST.get('url')
-        class_names = request.POST.getlist('xpath[]')  # Change to match the input name in HTML
+        xpaths = request.POST.getlist('xpath[]')
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-
         try:
-            # Run validation tests across all browsers
-            validation_results = loop.run_until_complete(run_tests_across_browsers(url, class_names))
-            return render(request, 'form_result.html', {'form_results': validation_results, 'url': url})
+            form_results = loop.run_until_complete(run_cross_browser_tests(url, xpaths))
+
+            # Format the results for the HTML table
+            return render(request, 'form_result.html', {'form_results': form_results})
         except Exception as e:
             return render(request, 'form_result.html', {'error': str(e)})
 
-    return render(request, 'welcome.html')
-
+    return render(request, 'form_test.html')
 
 #***********************************************************************************************
 # View to handle the navigation test using Playwright
@@ -371,3 +393,10 @@ def navigation_view(request):
             return render(request, 'navigation_result.html', {'error': str(e)})
 
     return render(request, 'navigation_form.html')
+
+
+
+#******************************************************************************************************
+
+
+

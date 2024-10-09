@@ -46,10 +46,8 @@
                 <!-- Dynamic input fields for XPath and Value pairs -->
                 <div id="xpath-value-inputs" class="scrollable-container1">
                     <div class="input-group2">
-                        <label>Class Name:</label>
-                        <input type="text" name="xpath[]" placeholder="Enter XPath" required />
-                        <label>Value:</label>
-                        <input type="text" name="value[]" placeholder="Enter Value" required />
+                        <label>X-path</label>
+                        <input type="text" name="xpath[]" placeholder="Enter XPath"  class="x_path"/>
                         <!-- Button to add more input fields -->
                         <button type="button" class="add-btn" onclick="addMoreFields()">+</button>
                     </div>
@@ -73,11 +71,8 @@
             
             // Create new input fields for XPath and Value
             newInputGroup.innerHTML = `
-                <label>Class Name:</label>
-                <input type="text" name="xpath[]" placeholder="Enter XPath" required />
-                
-                <label>Value:</label>
-                <input type="text" name="value[]" placeholder="Enter Value" required />
+                <label>X-path:</label>
+                <input type="text" name="xpath[]" placeholder="Enter XPath" />
                 
                 <!-- Add and Remove buttons -->
                 <button type="button" class="remove-btn" onclick="removeFields(this)">-</button>
