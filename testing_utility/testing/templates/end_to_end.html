@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>End-to-End Test Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f9f9f9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .fail {
+            color: red;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-button, .print-button {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .back-button:hover, .print-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Style for the time taken */
+        .time {
+            font-style: italic;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>End-to-End Test Report</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Browser</th>
+                <th>Step</th>
+                <th>Status</th>
+                <th>Time Taken (seconds)</th>
+                <th>Error Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in test_results %}
+            <tr>
+                <td>{{ result.browser }}</td>
+                <td>{{ result.step }}</td>
+                <td class="{% if result.status == 'Success' %}success{% else %}fail{% endif %}">
+                    {{ result.status }}
+                </td>
+                <td class="time">
+                    {% if result.time_taken %}
+                        {{ result.time_taken | floatformat:2 }} seconds
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    {% if result.error_details %}
+                        <ul>
+                            <li>{{ result.error_details }}</li>
+                        </ul>
+                    {% else %}
+                        No Errors
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="button-container">
+        <a href="{% url 'form_test' %}" class="back-button">Back</a>
+        <input type="button" class="print-button" value="Print this page" onClick="window.print()">
+    </div>
+
+</body>
+</html>

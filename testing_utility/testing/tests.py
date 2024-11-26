@@ -1,50 +1,36 @@
-import asyncio
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 
-async def validate_form(page):
-    """
-    Check for visible validation errors on the form after submitting.
-    """
-    # Look for any validation errors (customize the selector based on the form)
-    error_selector = 'span.error-message, .error, .invalid-feedback'  # Example selectors for error messages
-    if await page.is_visible(error_selector):
-        errors = await page.locator(error_selector).all_inner_texts()
-        return {"validation_passed": False, "errors": errors}
-    return {"validation_passed": True, "errors": []}
+def run(playwright):
+    browser = playwright.chromium.launch(headless=False)  # Set headless=True to run without UI
+    context = browser.new_context()
+    page = context.new_page()
 
-async def test_form_validation(url):
-    async with async_playwright() as p:
-        # Launch browser
-        browser = await p.chromium.launch(headless=False)
-        page = await browser.new_page()
+    # Navigate to Spotify login page
+    page.goto('https://www.spotify.com/login')
 
-        # Navigate to the URL
-        await page.goto(url)
+    # Fill in the login form
+    page.fill('input[data-testid="login-username"]', 'samarsingh7266@gmail.com')  # Replace with your username
+    page.fill('input[data-testid="login-password"]', 'Samar@12345')  # Replace with your password
 
-        # Wait for the form and fill with invalid data
-        await page.wait_for_selector('input[name="user-name"]')
-        await page.fill('input[name="user-name"]', 'invalid_email')  # Input invalid email
-        await page.fill('input[name="password"]', '123')  # Input too short password
+    # Wait for the login button to be visible
+    page.wait_for_selector('button[data-testid="login-button"]')
 
-        # Wait for the submit button to be available and click it
-        await page.wait_for_selector('input[type="submit"]')
-        await page.click('input[type="submit"]')
+    # Click the login button
+    page.click('button[data-testid="login-button"]')
 
-        # Optionally, you can force the form submission with Enter key
-        # await page.press('input[name="password"]', 'Enter')
+    # Wait for the page to load after login
+    page.wait_for_load_state('networkidle')  # Wait for network activity to finish
 
-        # Check for validation errors
-        validation_result = await validate_form(page)
+    # Check if login was successful by looking for a specific element
+    is_logged_in = page.is_visible('div[class*="profile-name"]')  # Replace with a valid selector
 
-        # Print results
-        if validation_result['validation_passed']:
-            print("Form validation passed.")
-        else:
-            print("Form validation failed.")
-            print(f"Errors: {validation_result['errors']}")
+    if is_logged_in:
+        print('Login successful!')
+    else:
+        print('Login failed.')
 
-        # Close browser
-        await browser.close()
+    # Close the browser
+    browser.close()
 
-# Run the test
-asyncio.run(test_form_validation("https://www.saucedemo.com/"))
+with sync_playwright() as playwright:
+    run(playwright)

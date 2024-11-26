@@ -1,1 +1,0 @@
-[{"browser": "webkit", "menu_path": "//*[@id=\"cssmenu\"]/ul/li[2]/a", "status": "Error", "new_url": "https://www.w3schools.com/", "error_details": "Page.click: Timeout 30000ms exceeded.\nCall log:\nwaiting for locator(\"//*[@id=\\\"cssmenu\\\"]/ul/li[2]/a\")\n"}]

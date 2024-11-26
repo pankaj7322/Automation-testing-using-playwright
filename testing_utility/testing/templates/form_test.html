@@ -26,16 +26,16 @@
                 <ul class="menu">
                     <li><a href="{% url 'home' %}">Home</a></li>
                     <li><a href="{% url 'test_website' %}">Login Test</a></li>
-                    <li style="background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%); color:white; border-radius:5px;padding:0.5rem 1rem;"><a href="#">Form Test</a></li>
                     <li><a href="{% url 'navigation' %}">Page Navigation Test</a></li>
+                    <li style="background-image: linear-gradient(147deg, #ffe53b 0%, #ff2525 74%); color:white; border-radius:5px;padding:0.5rem 1rem;"><a href="#">End To End</a></li>
                     <li><a href="{% url 'logout' %}">Log Out</a></li>
                 </ul>
             </nav>
         </div>
 
         <div class="container">
-            <form id="linkForm1" method="post" action="{% url 'form_view' %}">
-                <h2 style="color:red;">Form Test</h2><br>
+            <form id="linkForm1" method="post" action="{% url 'navigation_new' %}">
+                <h2 style="color:red;">End To End Testing</h2><br>
                 {% csrf_token %}
                 
                 <!-- Input for the URL -->
@@ -46,10 +46,10 @@
                 <!-- Dynamic input fields for XPath and Value pairs -->
                 <div id="xpath-value-inputs" class="scrollable-container1">
                     <div class="input-group2">
-                        <label>X-path</label>
-                        <input type="text" name="xpath[]" placeholder="Enter XPath"  class="x_path"/>
+                        <!-- <label>X-path</label>
+                        <input type="text" name="xpath[]" placeholder="Enter XPath"  class="x_path"/> -->
                         <!-- Button to add more input fields -->
-                        <button type="button" class="add-btn" onclick="addMoreFields()">+</button>
+                        <!-- <button type="button" class="add-btn" onclick="addMoreFields()">+</button> -->
                     </div>
                 </div>
 

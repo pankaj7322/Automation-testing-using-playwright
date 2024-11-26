@@ -9,6 +9,7 @@ from playwright.async_api import async_playwright
 import asyncio
 import time
 
+
 def register(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -17,19 +18,20 @@ def register(request):
 
         if password != confirm_password:
             messages.error(request, "Password do not match")
-            return render(request, 'register.html', {'error':'Password do not match'})
+            return render(request, 'register.html', {'error': 'Password do not match'})
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already exists")
-            return render(request, 'register.html',{'error':"Username already exists"})
+            return render(request, 'register.html', {'error': "Username already exists"})
 
         user = User.objects.create_user(username=username, password=password)
         user.save()
 
-        login(request,user)
+        login(request, user)
 
         return render(request, 'register.html', {'error': "User Registered Successfully"})
     else:
         return render(request, 'register.html')
+
 
 def login_view(request):
     if request.method == 'POST':
@@ -57,6 +59,7 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+
 def navigation(request):
     return render(request, 'navigation_form.html')
 
@@ -64,11 +67,16 @@ def navigation(request):
 def test(request):
     return render(request, 'test_website.html')
 
+
 def result(request):
     return render(request, 'test_report.html')
 
+
 def form_test(request):
     return render(request, 'form_test.html')
+
+
+#****************************************** Login ****************************************
 
 async def detect_field(page, field_type):
     """
@@ -79,12 +87,15 @@ async def detect_field(page, field_type):
     """
     selectors = {
         'username': [
+            'input[type="text"]',
             'input[name="username"]',
             'input[name*="user"]',
             'input[name*="email"]',
             'input[id*="user"]',
             'input[id*="email"]',
-            'input[name*="login"]'
+            'input[name*="login"]',
+            'input[name*="l_emailval"]',
+            
         ],
         'password': [
             'input[type="password"]',
@@ -93,20 +104,20 @@ async def detect_field(page, field_type):
             'input[id*="pass"]'
         ]
     }
-    
+
     for selector in selectors[field_type]:
         field = await page.query_selector(selector)
         if field:
             return field
     return None
 
+
 async def run_playwright_test(url, username, password, browser_name):
     async with async_playwright() as p:
-        # Launch the browser based on the browser_name
         browser = await getattr(p, browser_name).launch(headless=False)
         page = await browser.new_page()
 
-        start_time = time.time()  # Start timing
+        start_time = time.time()
         try:
             print(f"Navigating to {url} on {browser_name}...")
             await page.goto(url)
@@ -135,8 +146,8 @@ async def run_playwright_test(url, username, password, browser_name):
                     'error_details': None
                 }
 
-            # Detect and click the submit button
-            submit_button = await page.query_selector('button[type="submit"], input[type="submit"], button:has-text("Login"), button:has-text("Log in"), button[id="submit"], button[id="login"]')
+            # Click the submit button
+            submit_button = await page.query_selector('button[type="submit"], input[type="submit"], input[type="button"], button:has-text("Log In"), button:has-text("Log in")')
             if submit_button:
                 await submit_button.click()
             else:
@@ -146,18 +157,41 @@ async def run_playwright_test(url, username, password, browser_name):
                     'error_details': None
                 }
 
-            await page.wait_for_load_state('networkidle')
+            # Wait for a brief moment to allow the page to respond
+            await page.wait_for_timeout(2000)
 
-            # Check for successful login (similar logic as before)
-            current_url = page.url
-            success_indicators = ['div.dashboard', 'div.user-welcome', 'nav', 'h1', 'footer']
-            success_found = any([await page.query_selector(indicator) for indicator in success_indicators])
+            # Check for error messages
+            error_message_selector = 'div[data-testid="login-error"], div.alert, .login-error'
+            error_message = await page.query_selector(error_message_selector)
 
-            result_text = f"Login {'successful' if success_found else 'failed'} for {url}"
+            if error_message:
+                error_text = await error_message.inner_text()
+                return {
+                    'result': f"Login failed for {url}",
+                    'time_taken': time.time() - start_time,
+                    'error_details': error_text.strip()
+                }
+
+            # Wait for user-specific elements indicating a successful login
+            # success_indicators = ['img[data-testid="user-profile-picture"]', 'div.dashboard']
+            # success_indicators = ['div']
+            # success_indicators = ['Your Library']
+            success_indicators = ['div.body-drag-top','html.spotify__container--is-web body', 'login_head_menu']
+            for indicator in success_indicators:
+                try:
+                    await page.wait_for_selector(indicator, timeout=5000)  # Wait for each success indicator
+                    return {
+                        'result': f"Login successful for {url}",
+                        'time_taken': time.time() - start_time,
+                        'error_details': None
+                    }
+                except Exception:
+                    continue  # Ignore if the element is not found
+
             return {
-                'result': result_text,
+                'result': f"Login failed for {url} (no success indicators found)",
                 'time_taken': time.time() - start_time,
-                'error_details': None
+                'error_details': "No success indicators found"
             }
 
         except Exception as e:
@@ -169,16 +203,14 @@ async def run_playwright_test(url, username, password, browser_name):
 
         finally:
             await browser.close()
-
-
-
 def run_tests_view(request):
     if request.method == 'POST':
         urls = request.POST.getlist('url[]')
         usernames = request.POST.getlist('username[]')
         passwords = request.POST.getlist('password[]')
 
-        browsers = ['chromium', 'firefox', 'webkit']  # Automatically run on all browsers
+        # Automatically run on all browsers
+        browsers = ['chromium', 'firefox', 'webkit']
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -211,111 +243,33 @@ def run_tests_view(request):
 
     return render(request, 'welcome.html')
 
-# *****************************************************************************************
+# **************************************** Login END *************************************************************
 
-async def validate_form(page):
-    try:
-        # Modify the error selector to capture specific error messages from the form
-        validation_error_selector = 'span.error-message, .error, .invalid-feedback, div.error-message'
-        
-        # Wait for form submission
-        await page.locator("form").evaluate("(form) => form.submit()")
-        
-        # Check if there are any validation error messages visible
-        if await page.is_visible(validation_error_selector):
-            errors = await page.locator(validation_error_selector).all_inner_texts()
-            errors = [error for error in errors if error.strip()]  # Filter out empty errors
-            return {"validation": False, "errors": errors}
-        else:
-            return {"validation": True, "errors": []}
-    except Exception as e:
-        # Handle any exceptions and return as error message
-        return {"validation": False, "errors": [str(e)]}
-
-
-async def open_website(url, xpaths, browser_name):
-    async with async_playwright() as p:
-        browser = await getattr(p, browser_name).launch(headless=False)
-        page = await browser.new_page()
-        await page.goto(url)
-        await page.wait_for_load_state('networkidle')
-
-        results = []
-        for field_xpath in xpaths:
-            try:
-                # Fill each field with test data
-                await page.fill(field_xpath, "TestValue")
-                # Store individual field status
-                result = await validate_form(page)
-                results.append({"field": field_xpath, "validation": result['validation'], "errors": result['errors']})
-            except Exception as e:
-                results.append({"field": field_xpath, "validation": False, "errors": [str(e)]})
-
-        await page.click('button[type="submit"], input[type="submit"]')
-        await browser.close()
-        return results
-
-async def run_cross_browser_tests(url, xpaths):
-    browser_names = ['chromium', 'firefox', 'webkit']
-    all_results = []
-
-    for browser_name in browser_names:
-        try:
-            browser_results = await open_website(url, xpaths, browser_name)
-            for result in browser_results:
-                all_results.append({
-                    "url": url,
-                    "browser": browser_name.capitalize(),
-                    "field": result["field"],
-                    "validation": result["validation"],
-                    "errors": result["errors"]
-                })
-        except Exception as e:
-            all_results.append({
-                "url": url,
-                "browser": browser_name.capitalize(),
-                "field": "N/A",
-                "validation": False,
-                "errors": [str(e)]
-            })
-    
-    return all_results
-
-def run_form_view(request):
-    if request.method == 'POST':
-        url = request.POST.get('url')
-        xpaths = request.POST.getlist('xpath[]')
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            form_results = loop.run_until_complete(run_cross_browser_tests(url, xpaths))
-
-            # Format the results for the HTML table
-            return render(request, 'form_result.html', {'form_results': form_results})
-        except Exception as e:
-            return render(request, 'form_result.html', {'error': str(e)})
-
-    return render(request, 'form_test.html')
-
-#***********************************************************************************************
+# ***********************************************************************************************
 # View to handle the navigation test using Playwright
+
+
 async def test_navigation_for_browser(url, menu_paths, browser_name):
     results = []
     async with async_playwright() as p:
-        browser = await getattr(p, browser_name).launch(headless=False)  # Launch the specified browser
+        # Launch the specified browser
+        browser = await getattr(p, browser_name).launch(headless=False)
         page = await browser.new_page()
 
         try:
             await page.goto(url)
-            await page.wait_for_load_state('networkidle')  # Wait until the page is fully loaded
+            # Wait until the page is fully loaded
+            await page.wait_for_load_state('networkidle')
 
             for menu_path in menu_paths:
                 try:
                     start_time = time.time()
-                    await page.click(menu_path)  # Try to click on the menu path
-                    await page.wait_for_load_state('networkidle')  # Wait for the page navigation
-                    time_taken = (time.time() - start_time) * 1000  # Time taken in ms
+                    # Try to click on the menu path
+                    await page.click(menu_path)
+                    # Wait for the page navigation
+                    await page.wait_for_load_state('networkidle')
+                    time_taken = (time.time() - start_time) * \
+                        1000  # Time taken in ms
 
                     # Check if the page URL changed after the click (indicating a successful navigation)
                     if page.url != url:
@@ -370,20 +324,25 @@ async def test_navigation_for_browser(url, menu_paths, browser_name):
             })
 
         await browser.close()
-    
+
     return results
 
 async def test_navigation(url, menu_paths):
     browsers = ['chromium', 'firefox', 'webkit']  # List of browsers to test
-    tasks = [test_navigation_for_browser(url, menu_paths, browser) for browser in browsers]
+    tasks = [test_navigation_for_browser(
+        url, menu_paths, browser) for browser in browsers]
     results = await asyncio.gather(*tasks)  # Run all tests in parallel
-    return [result for browser_results in results for result in browser_results]  # Flatten the list
+    # Flatten the list
+    return [result for browser_results in results for result in browser_results]
 
 # Django view to handle form submission
+
+
 def navigation_view(request):
     if request.method == 'POST':
         url = request.POST.get('url')  # Get the website URL
-        menu_paths = request.POST.getlist('menu_paths[]')  # Get the list of menu path selectors
+        # Get the list of menu path selectors
+        menu_paths = request.POST.getlist('menu_paths[]')
 
         # Convert the async function to sync using async_to_sync
         try:
@@ -395,8 +354,319 @@ def navigation_view(request):
     return render(request, 'navigation_form.html')
 
 
+# ******************************************************************************************************
+# Helper function to handle the end-to-end test, login, aria-label collection, and search actions
+async def end_to_end_test_for_browser(url, browser_name):
+    results = []
+    async with async_playwright() as p:
+        # Launch the specified browser
+        browser = await getattr(p, browser_name).launch(headless=False)
+        page = await browser.new_page()
 
-#******************************************************************************************************
+        try:
+            start_time = time.time()
+            await page.goto(url)
+            await page.wait_for_load_state('networkidle')
+            end_time = time.time()
+            results.append({
+                'browser': browser_name,
+                'step': 'Page Load',
+                'status': 'Success',
+                'time_taken': end_time - start_time
+            })
+            
+            # Perform the login process
+            try:
+                start_time = time.time()
+                await page.fill("input[type='text']", "samarsingh7266@gmail.com")  # Replace with your username
+                await page.fill("input[type='password']", "Samar@12345")  # Replace with your password
+                await page.click("button[id='login-button']")  # Replace with the login button selector
+
+                # Wait for a selector to confirm successful login
+                try:
+                    await page.wait_for_selector("span[class='fmZ0hU6ImbDQi5qGWLvF']")  # Replace with a unique selector after login
+                except Exception as e:
+                    results.append({
+                        'browser': browser_name,
+                        'step': 'Login',
+                        'status': 'Error',
+                        'error_details': f"Login failed: {str(e)}"
+                    })
+                    return results
+                
+                end_time = time.time()
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Login',
+                    'status': 'Success',
+                    'time_taken': end_time - start_time
+                })
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Login',
+                    'status': 'Error',
+                    'error_details': f"Login failed: {str(e)}"
+                })
+                return results
+
+            # Wait to ensure all target elements are fully loaded
+            await page.wait_for_timeout(5000)  # Adjust timeout if needed (2 seconds)
+
+            # Collect elements with aria-labelledby attribute starting with "card-title-spotify:show:"
+            start_time = time.time()
+            try:
+                elements = await page.query_selector_all('.CardButton-sc-g9vf2u-0.eWZOJQ')  # Select elements with this class
+                labels = [await element.get_attribute("aria-labelledby") for element in elements]
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Collect Albums',
+                    'status': 'Error',
+                    'error_details': f"Failed to collect labels: {str(e)}"
+                })
+                return results
+            end_time = time.time()
+
+            if labels:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Collect Albums',
+                    'status': 'Success',
+                    'labels': labels[:2],  # Print the first 2 labels
+                    'time_taken': end_time - start_time
+                })
+            else:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Collect Albums',
+                    'status': 'No Albums Found',
+                    'time_taken': end_time - start_time
+                })
+
+            # Perform interactions on the first two labels if they exist
+            for i, label in enumerate(labels[:2]):
+                try:
+                    label_selector = f"[aria-labelledby='{label}']"
+                    start_time = time.time()
+                    await page.wait_for_selector(label_selector)
+                    await page.click(label_selector)
+                    await page.wait_for_load_state('load')
+                    end_time = time.time()
+
+                    results.append({
+                        'browser': browser_name,
+                        'step': f'Click on Label: {label}',
+                        'status': 'Success',
+                        'time_taken': end_time - start_time
+                    })
+                    
+                    # Go back to the previous page and wait for it to load
+                    await page.wait_for_timeout(5000)
+                    await page.go_back()
+                    await page.wait_for_load_state('load')  # Wait for the previous page to load completely
+                    results.append({
+                        'browser': browser_name,
+                        'step': 'Go Back',
+                        'status': 'Success',
+                        'time_taken': time.time() - end_time
+                    })
+
+                except Exception as e:
+                    results.append({
+                        'browser': browser_name,
+                        'step': f'Click on Label {label}',
+                        'status': 'Error',
+                        'error_details': f"Failed to click label {label}: {str(e)}"
+                    })
+
+            # Perform a search after login
+            try:
+                start_time = time.time()
+                await page.wait_for_selector("input[data-encore-id='formInput']")  # Wait for the search input field to appear
+                await page.fill("input[data-encore-id='formInput']", "Justin Bieber Top 10")  # Example search term
+                end_time = time.time()
+
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Search',
+                    'status': 'Success',
+                    'search_term': 'Justin Bieber Top 10',
+                    'time_taken': end_time - start_time
+                })
+
+                # Wait for search results to load
+                await page.wait_for_selector(".ouEZqTcvcvMfvezimm_J")  # Adjust selector if necessary to wait for search results
+                await page.wait_for_timeout(5000)
+
+                # Click on the first search result
+                start_time = time.time()
+                await page.click(".ouEZqTcvcvMfvezimm_J")
+                await page.wait_for_load_state('load')
+                end_time = time.time()
+
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Click on First Search Result',
+                    'status': 'Success',
+                    'time_taken': end_time - start_time
+                })
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Search',
+                    'status': 'Error',
+                    'error_details': f"Search failed: {str(e)}"
+                })
+
+            # Click a button after the search result
+            try:
+                start_time = time.time()
+                await page.wait_for_selector("button[aria-label='Save to Your Library']")  # Replace with actual button selector
+                await page.click("button[aria-label='Save to Your Library']")
+                end_time = time.time()
+
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Click Save to Library',
+                    'status': 'Success',
+                    'time_taken': end_time - start_time
+                })
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Click Save to Library',
+                    'status': 'Error',
+                    'error_details': f"Failed to click save button: {str(e)}"
+                })
+
+            # Wait 2 seconds before going back
+            await page.wait_for_timeout(5000)
+
+            # Click on multiple songs to like them
+            try:
+                start_time = time.time()
+                like_buttons = await page.query_selector_all("button[aria-label='Add to Liked Songs'][aria-checked='false']")
+                for index, button in enumerate(like_buttons[:5]):
+                    await button.click()
+                    await page.wait_for_timeout(2000)  # Wait for 2 seconds after clicking each button
+                end_time = time.time()
+
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Like Songs',
+                    'status': 'Success',
+                    'time_taken': end_time - start_time
+                })
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Like Songs',
+                    'status': 'Error',
+                    'error_details': f"Failed to like songs: {str(e)}"
+                })
+
+            # Go back to the previous page and wait for it to load
+            try:
+                start_time = time.time()
+                await page.go_back()
+                await page.wait_for_load_state('load')
+                end_time = time.time()
+
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Go Back After Liking Songs',
+                    'status': 'Success',
+                    'time_taken': end_time - start_time
+                })
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Go Back After Liking Songs',
+                    'status': 'Error',
+                    'error_details': f"Failed to go back: {str(e)}"
+                })
+
+            await page.wait_for_timeout(5000)
+
+            # --- Click on Profile Section ---
+            try:
+                await page.wait_for_selector("button[data-testid='user-widget-link'][aria-label='Samar Singh']")
+                await page.click("button[data-testid='user-widget-link'][aria-label='Samar Singh']")
+                await page.wait_for_timeout(5000)
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Profile Section',
+                    'status': 'Error',
+                    'error_details': f"Failed to click profile button: {str(e)}"
+                })
+
+            # --- Log Out Functionality ---
+            try:
+                await page.wait_for_selector("button[data-testid='user-widget-dropdown-logout']")
+                await page.click("button[data-testid='user-widget-dropdown-logout']")
+                await page.wait_for_timeout(3000)
+                await page.wait_for_selector("button[data-testid='login-button']")
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Logout',
+                    'status': 'Success',
+                    'time_taken': None
+                })
+            except Exception as e:
+                results.append({
+                    'browser': browser_name,
+                    'step': 'Logout',
+                    'status': 'Error',
+                    'error_details': f"Failed to log out: {str(e)}"
+                })
+
+            # Close browser
+            await browser.close()
+
+            # Append successful navigation result
+            results.append({
+                'browser': browser_name,
+                'step': 'Test Complete',
+                'status': 'Success',
+                'new_url': page.url,
+                'time_taken': None,
+                'error_details': None
+            })
+
+        except Exception as e:
+            results.append({
+                'browser': browser_name,
+                'step': 'Error',
+                'status': 'Error',
+                'error_details': str(e)
+            })
+
+        await browser.close()
+
+    return results
 
 
 
+# Async function to test all browsers
+async def run_end_to_end_tests(url):
+    browsers = ['chromium', 'firefox', 'webkit']  # List of browsers to test
+    tasks = [end_to_end_test_for_browser(url, browser) for browser in browsers]
+    results = await asyncio.gather(*tasks)  # Run all tests in parallel
+    # Flatten the list
+    return [result for browser_results in results for result in browser_results]
+
+# Django view to handle form submission
+def navigation_view_new(request):
+    if request.method == 'POST':
+        url = request.POST.get('url')  # Get the website URL
+
+        # Convert the async function to sync using async_to_sync
+        try:
+            test_results = async_to_sync(run_end_to_end_tests)(url)
+            return render(request, 'end_to_end.html', {'test_results': test_results, 'url': url})
+        except Exception as e:
+            return render(request, 'end_to_end.html', {'error': str(e)})
+
+    return render(request, 'end_to_end.html')
